@@ -20,7 +20,6 @@
 - `GooglePhotosAlbumDownloader.exe`（位於 `dist\`）：單一執行檔，主程式。
 - `album_downloader_gui.py`：GUI 程式，即 exe 的進入點。
 - `album_downloader.py`：下載與解析邏輯。
-- `download_albums_cli.py`：命令列版本，下載腳本中寫死的相簿清單（`python download_albums_cli.py`）。
 - `test_album_downloader.py`：單元測試（`python -m unittest test_album_downloader`）。
 - `build_exe.bat`：重新打包 exe 的腳本。
 - `requirements.txt`：執行與打包所需套件。
