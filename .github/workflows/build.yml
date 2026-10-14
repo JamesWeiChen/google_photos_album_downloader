@@ -1,0 +1,89 @@
+name: Build
+
+# Runs on every push to main (builds + tests), and on version tags (builds + publishes a GitHub Release).
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - run: python -m unittest test_album_downloader -v
+
+  build:
+    needs: test
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            artifact: GooglePhotosAlbumDownloader-Windows.exe
+          - os: macos-latest
+            artifact: GooglePhotosAlbumDownloader-macOS.zip
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+
+      - name: Build Windows exe
+        if: runner.os == 'Windows'
+        run: >
+          python -m PyInstaller --noconfirm --clean --onefile --windowed
+          --name GooglePhotosAlbumDownloader album_downloader_gui.py
+
+      - name: Build macOS app
+        if: runner.os == 'macOS'
+        run: >
+          python -m PyInstaller --noconfirm --clean --onefile --windowed
+          --name GooglePhotosAlbumDownloader album_downloader_gui.py
+
+      - name: Package Windows artifact
+        if: runner.os == 'Windows'
+        shell: bash
+        run: cp dist/GooglePhotosAlbumDownloader.exe "${{ matrix.artifact }}"
+
+      - name: Package macOS artifact
+        if: runner.os == 'macOS'
+        run: |
+          # ditto keeps the .app bundle's permissions and symlinks intact
+          ditto -c -k --keepParent dist/GooglePhotosAlbumDownloader.app "${{ matrix.artifact }}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.artifact }}
+          if-no-files-found: error
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: release
+          merge-multiple: true
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ github.ref_name }}" release/* \
+            --title "${{ github.ref_name }}" \
+            --generate-notes

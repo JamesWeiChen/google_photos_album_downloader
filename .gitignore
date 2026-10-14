@@ -1,0 +1,14 @@
+# Downloaded albums and resume progress (personal data, never commit)
+zip_output/
+.download_progress.json
+*.part
+
+# Build output
+dist/
+build/
+*.spec
+
+# Python
+__pycache__/
+*.pyc
+.venv/
