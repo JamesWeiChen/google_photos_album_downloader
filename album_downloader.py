@@ -2,6 +2,7 @@ import html
 import json
 import os
 import re
+import ssl
 import sys
 import threading
 import time
@@ -10,7 +11,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Iterable, TypeVar
 
+import certifi
 import requests
+from requests.adapters import HTTPAdapter
 
 
 T = TypeVar("T")
@@ -126,9 +129,33 @@ def parse_album_inputs(raw_text: str) -> list[AlbumInput]:
     return albums
 
 
+class _MemoryCaAdapter(HTTPAdapter):
+    """Verify HTTPS against CA certificates loaded from memory instead of a file.
+
+    In PyInstaller builds on Windows, OpenSSL aborts ("OPENSSL_Uplink ... no
+    OPENSSL_Applink") when it reads a CA file, which is what requests does with
+    verify=certifi.where(). Loading the same PEM text from memory avoids that.
+    """
+
+    def __init__(self, **kwargs) -> None:
+        self._ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+        self._ssl_context.load_verify_locations(cadata=certifi.contents())
+        super().__init__(**kwargs)
+
+    def init_poolmanager(self, *args, **kwargs):
+        kwargs["ssl_context"] = self._ssl_context
+        return super().init_poolmanager(*args, **kwargs)
+
+    def cert_verify(self, conn, url, verify, cert):
+        super().cert_verify(conn, url, verify, cert)
+        # Clear the CA file path that requests set; the context already has the certificates
+        conn.ca_certs = None
+
+
 def create_session() -> requests.Session:
     session = requests.Session()
     session.headers.update({"User-Agent": USER_AGENT})
+    session.mount("https://", _MemoryCaAdapter())
     return session
 
 

@@ -12,3 +12,6 @@ build/
 __pycache__/
 *.pyc
 .venv/
+
+# Local build environment
+.venv-build/

@@ -28,8 +28,8 @@
 
 1. 安裝套件：`pip install -r requirements.txt`
 2. 打包：
-   - **Windows**：執行 `build_exe.bat`，產出 `dist\GooglePhotosAlbumDownloader.exe`。
-     若 Python 不是 Miniconda 安裝，請修改 `build_exe.bat` 中的 `TK_BIN`，指向該 Python 的 `Library\bin`（內含 `tcl86t.dll`、`tk86t.dll`）。
+   - **Windows**：先安裝 [uv](https://docs.astral.sh/uv/)（`winget install astral-sh.uv`），然後執行 `build_exe.bat`，產出 `dist\GooglePhotosAlbumDownloader.exe`。
+     腳本會用 uv 下載獨立的 Python 3.12 到 `.venv-build`。請勿用 Miniconda 的 Python 打包：它的 OpenSSL 在 PyInstaller 版本中會崩潰（`no OPENSSL_Applink`），導致無法下載。
    - **macOS**：在 Mac 終端機執行
      `python3 -m PyInstaller --noconfirm --clean --onefile --windowed --name GooglePhotosAlbumDownloader album_downloader_gui.py`，
      產出 `dist/GooglePhotosAlbumDownloader.app`。
