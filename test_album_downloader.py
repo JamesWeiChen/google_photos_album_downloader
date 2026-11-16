@@ -180,6 +180,32 @@ https://photos.app.goo.gl/albumThree
 
         self.assertEqual([album.date_label for album in albums], ["3.9", "3.10"])
 
+    def test_parses_western_years_hyphens_after_dates_and_chinese_dates(self) -> None:
+        raw_text = """115/11/02-假日分享/公園日/英語融入/主題活動/操作時間https://photos.app.goo.gl/albumA
+2026/11/03-操作時間/戶外活動/主題活動/英語融入https://photos.app.goo.gl/albumB
+2026/11/04-早餐時間/主題活動/操作時間
+https://photos.app.goo.gl/albumC
+2026/11/05操作時間。https://photos.app.goo.gl/albumD
+- 2026-11-06 玩具分享 https://photos.app.goo.gl/albumE
+2026.11.09 假日分享 https://photos.app.goo.gl/albumF
+115年11月12日英語融入 https://photos.app.goo.gl/albumG
+"""
+
+        albums = parse_album_inputs(raw_text)
+
+        self.assertEqual(
+            [(album.date_label, album.share_url) for album in albums],
+            [
+                ("115.11.02", "https://photos.app.goo.gl/albumA"),
+                ("2026.11.03", "https://photos.app.goo.gl/albumB"),
+                ("2026.11.04", "https://photos.app.goo.gl/albumC"),
+                ("2026.11.05", "https://photos.app.goo.gl/albumD"),
+                ("2026.11.06", "https://photos.app.goo.gl/albumE"),
+                ("2026.11.09", "https://photos.app.goo.gl/albumF"),
+                ("115.11.12", "https://photos.app.goo.gl/albumG"),
+            ],
+        )
+
     def test_reports_every_dated_block_without_a_link(self) -> None:
         with self.assertRaisesRegex(DownloadError, r"115\.08\.04"):
             parse_album_inputs(

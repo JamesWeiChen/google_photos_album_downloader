@@ -40,7 +40,7 @@ class DownloaderApp:
 
         ttk.Label(
             frame,
-            text="支援網址另起一行、Markdown 連結，以及日期後沒有空格的格式",
+            text="支援西元或民國年、網址另起一行、Markdown 連結，以及日期後直接接文字的格式",
         ).grid(row=1, column=0, sticky="w", pady=(4, 10))
 
         self.input_text = tk.Text(frame, wrap="word", height=12, font=("Consolas", 11))

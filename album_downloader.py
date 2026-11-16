@@ -30,8 +30,17 @@ META_TITLE_RE = re.compile(
 )
 MEDIA_URL_RE = re.compile(r'\["(https://lh3\.googleusercontent\.com/[^"]+)",\d+,\d+')
 INVALID_FILENAME_RE = re.compile(r'[<>:"/\\|?*]+')
+# 行首日期，支援 115/08/03、2026/11/03、115.8.3、3/9、3-10、115年11月02日、11月02日。
+# 日期前可有 "-"、"*"、"•" 項目符號；日期後可直接接 "-" 或文字（如 115/11/02-假日分享）。
 DATE_LINE_RE = re.compile(
-    r"^[^\S\r\n]*(?P<label>\d{1,3}[./-]\d{1,2}[./-]\d{1,2}|\d{1,2}[./-]\d{1,2})(?=$|[^\d./-])",
+    r"^[^\S\r\n]*[-*•]?[^\S\r\n]*"
+    r"(?P<label>"
+    r"(?:\d{4}|\d{2,3})[./-]\d{1,2}[./-]\d{1,2}"
+    r"|\d{1,2}[./-]\d{1,2}"
+    r"|(?:\d{4}|\d{2,3})年\d{1,2}月\d{1,2}日?"
+    r"|\d{1,2}月\d{1,2}日?"
+    r")"
+    r"(?!\d)(?![./-]\d)",
     re.MULTILINE,
 )
 SHARE_URL_RE = re.compile(
@@ -84,6 +93,15 @@ def clean_album_zip_name(title: str) -> str:
     return f"{sanitize_filename(base)}.zip"
 
 
+def normalize_date_label(raw: str) -> str:
+    """Turn a matched date such as 115/8/3, 2026-11-03 or 115年11月02日 into 115.8.3 style.
+
+    The year is kept exactly as written.
+    """
+    text = raw.strip().rstrip("日")
+    return re.sub(r"[\s年月/\-.]+", ".", text).strip(".")
+
+
 def parse_album_inputs(raw_text: str) -> list[AlbumInput]:
     """Parse dated album entries from either compact lines or descriptive blocks.
 
@@ -110,7 +128,7 @@ def parse_album_inputs(raw_text: str) -> list[AlbumInput]:
         block_end = date_matches[index + 1].start() if index + 1 < len(date_matches) else len(raw_text)
         block = raw_text[match.end() : block_end]
         urls = list(dict.fromkeys(SHARE_URL_RE.findall(block)))
-        label = re.sub(r"[/-]", ".", match.group("label"))
+        label = normalize_date_label(match.group("label"))
 
         if not urls:
             missing_urls.append(label)
